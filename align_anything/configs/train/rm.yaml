@@ -13,7 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 
-
 # training configurations
 train_cfgs:
   # The deepspeed configuration
@@ -56,7 +55,7 @@ train_cfgs:
   freeze_vision_tower: True
 # Configuration for datasets
 data_cfgs:
-    # Datasets to use for training
+  # Datasets to use for training
   train_datasets: null
   # The format template for training
   train_template: null

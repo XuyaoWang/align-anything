@@ -32,7 +32,11 @@ from transformers import (
 from transformers.utils.generic import ModelOutput
 
 from align_anything.models.llava_model import AccustomedLlavaModel
-
+from align_anything.models.any_model import (
+    AnyModelConfig,
+    AnyModelForConditionalGeneration,
+    AccustomedAnyModel,
+)
 
 @dataclass
 class ScoreModelOutput(ModelOutput):
@@ -71,7 +75,7 @@ def get_score_model(base_pretrained_model, base_llm_model):
 
             last_hidden_state = outputs.hidden_states[-1]
             scores = self.score_head(last_hidden_state).float()
-            if kwargs.get('pixel_values') is not None:
+            if kwargs.get('pixel_values') is not None and outputs.image_to_overwrite is not None:
                 image_mask = outputs.image_to_overwrite
                 last_hidden_state = outputs.hidden_states[-1]
                 scores = self.score_head(last_hidden_state).float()
@@ -145,13 +149,26 @@ class AnyBaseModelCLS(AutoModel):
     """Any model for base class."""
 
 
+# def register_model(auto_model: AutoModelForCausalLM) -> AutoModelForCausalLM:
+#     auto_model.register(LlavaConfig, LlavaForConditionalGeneration)
+#     return auto_model
+
+
+# def register_base_model(auto_model: AnyBaseModelCLS) -> AnyBaseModelCLS:
+#     auto_model.register(LlavaConfig, AccustomedLlavaModel)
+#     return auto_model
+
+
+# AnyModel = register_model(AutoModelForCausalLM)
+# AnyBaseModel = register_base_model(AnyBaseModelCLS)
+
 def register_model(auto_model: AutoModelForCausalLM) -> AutoModelForCausalLM:
-    auto_model.register(LlavaConfig, LlavaForConditionalGeneration)
+    auto_model.register(AnyModelConfig, AnyModelForConditionalGeneration)
     return auto_model
 
 
 def register_base_model(auto_model: AnyBaseModelCLS) -> AnyBaseModelCLS:
-    auto_model.register(LlavaConfig, AccustomedLlavaModel)
+    auto_model.register(AnyModelConfig, AccustomedAnyModel)
     return auto_model
 
 

@@ -26,7 +26,7 @@ from typing import Any, Callable, Literal
 import deepspeed
 import torch
 import torch.nn as nn
-from transformers import AutoProcessor, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase
+from transformers import AutoProcessor, AutoTokenizer, PreTrainedModel, PreTrainedTokenizerBase, ProcessorMixin, AutoModel
 from transformers.integrations.deepspeed import is_deepspeed_zero3_enabled
 
 from align_anything.models.model_registry import AnyModel
@@ -159,7 +159,7 @@ def load_pretrained_models(  # pylint: disable=too-many-arguments
     auto_model_kwargs: dict[str, Any] | None = None,
     auto_tokenizer_args: tuple[Any, ...] = (),
     auto_tokenizer_kwargs: dict[str, Any] | None = None,
-) -> tuple[PreTrainedModel, PreTrainedTokenizerBase]:
+) -> tuple[PreTrainedModel, PreTrainedTokenizerBase, ProcessorMixin]:
     """Load pre-trained model and tokenizer from a given path."""
     model_name_or_path = os.path.expanduser(model_name_or_path)
     cache_dir = os.path.expanduser(cache_dir) if cache_dir is not None else None
@@ -200,7 +200,6 @@ def load_pretrained_models(  # pylint: disable=too-many-arguments
         trust_remote_code=trust_remote_code,
         **auto_tokenizer_kwargs,
     )
-    resize_tokenizer_embedding(tokenizer=tokenizer, model=model)
 
     try:
         processor = AutoProcessor.from_pretrained(
@@ -208,7 +207,7 @@ def load_pretrained_models(  # pylint: disable=too-many-arguments
             cache_dir=cache_dir,
             trust_remote_code=trust_remote_code,
         )
-        setattr(processor, 'tokenizer', tokenizer)
+        resize_tokenizer_embedding(tokenizer=processor.tokenizer, model=model)
     except:
         processor = None
     return model, tokenizer, processor

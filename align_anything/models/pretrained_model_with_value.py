@@ -31,6 +31,7 @@ def load_pretrained_model_with_value_head(
     auto_device_mapping: bool = False,
     freeze_vision_tower: bool = True,
     freeze_mm_proj: bool = True,
+    freeze_language_model: bool = True,
     dtype: torch.dtype | str | None = 'auto',
     *,
     cache_dir: str | os.PathLike | None = None,
@@ -55,7 +56,6 @@ def load_pretrained_model_with_value_head(
         base_pretrained_class = base_class.pretrain_class()
     except AttributeError:
         base_pretrained_class = base_class.__base__
-
     AnyRewardModel = get_score_model(base_pretrained_class, base_class)
     model = AnyRewardModel.from_pretrained(
         model_name_or_path,
@@ -68,10 +68,16 @@ def load_pretrained_model_with_value_head(
     )
 
     forbidden_modules = set()
+
     if freeze_vision_tower:
-        forbidden_modules.add('vision_tower')
+        forbidden_modules.add('modality_tower')
     if freeze_mm_proj:
-        forbidden_modules.add('multi_modal_projector')
+        forbidden_modules.add('image_projector')
+        forbidden_modules.add('video_projector')
+        forbidden_modules.add('audio_projector')
+    if freeze_language_model:
+        forbidden_modules.add('language_model')
+
     for name, param in model.named_parameters():
         if not any(forbidden_module in name for forbidden_module in forbidden_modules):
             if dtype == torch.float32:
@@ -95,15 +101,15 @@ def load_pretrained_model_with_value_head(
         print('[MoE] set output_router_logits as True')
         model.config.output_router_logits = True
 
-    resize_tokenizer_embedding(tokenizer=tokenizer, model=model)
     try:
         processor = AutoProcessor.from_pretrained(
             model_name_or_path,
             cache_dir=cache_dir,
             trust_remote_code=trust_remote_code,
         )
-        setattr(processor, 'tokenizer', tokenizer)
+        resize_tokenizer_embedding(tokenizer=processor.tokenizer, model=model)
     except Exception as e:
         processor = None
+        resize_tokenizer_embedding(tokenizer=tokenizer, model=model)
 
     return model, tokenizer, processor

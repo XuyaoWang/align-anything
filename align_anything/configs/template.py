@@ -94,7 +94,7 @@ class PKUSafeRLHF(Template):
     assistant_prompt: str = 'ASSISTANT:{output}'
     split_token: str = 'ASSISTANT:'
     separator: str = ''
-    
+
     def format_sample(self, raw_sample: dict[str, Any]) -> dict[str, Any]:
         metrics = raw_sample['better_response_id']
         better_response = raw_sample[f'response_{int(metrics)}']
@@ -160,6 +160,42 @@ class LLAVA:
             'image': Image.open(requests.get(image_file, stream=True).raw),
         }
 
+@register_template('Any')
+class Any:
+    system_prompt: str = ''
+    user_prompt: str = 'USER: {input}'
+    assistant_prompt: str = '\nASSISTANT:\n{modality}'
+    split_token: str = 'ASSISTANT:'
+
+    def format_sample(self, raw_sample: dict[str, Any]) -> dict[str, Any]:
+        raw_prompt = raw_sample['prompt']
+
+        modality = ''
+        if raw_sample['modality'] == 'image':
+            self.system_prompt = 'Generate image according to the text description.\n'
+            modality = '<image>'
+        elif raw_sample['modality'] == 'video':
+            self.system_prompt = 'Generate video according to the text description.\n'
+            modality = '<video>'
+        elif raw_sample['modality'] == 'audio':
+            self.system_prompt = 'Synthesize speech according to the text description.\n'
+            modality = '<audio>'
+        else:
+            raise ValueError(f"Invalid modality: {raw_sample['modality']}")
+
+        prompt = (
+            f'{self.system_prompt}'
+            f'{self.user_prompt.format(input=raw_prompt)}'
+            f"{self.assistant_prompt.format(modality=modality)}"
+        )
+        assert raw_sample["better_data_path"] != raw_sample["worse_data_path"], "better_data_path and worse_data_path should be different."
+        return {
+            "prompt": prompt,
+            "better_data_path": raw_sample["better_data_path"],
+            "worse_data_path": raw_sample["worse_data_path"],
+            "modality": raw_sample["modality"],
+        }
+
 
 @register_template('RLAIFV')
 class RLAIFV:
@@ -190,7 +226,7 @@ class RLAIFV:
             'worse_text': formatted_worse_output,
             'image': image,
         }
-    
+
     def format_prompt_only_sample(self, raw_sample: dict[str, Any]) -> dict[str, Any]:
         prompt = raw_sample['question']
         image = raw_sample['image']
@@ -260,7 +296,7 @@ class Alpaca(Dialogue):
     system_prompt: str = 'Below is an instruction that describes a task. '
     user_prompt: str = '### Instruction:\n{input}\n\n'
     assistant_prompt: str = '### Response:\n{output}'
-    
+
 
 @register_template('Aquila')
 class Aquila(Dialogue):
@@ -300,7 +336,7 @@ class Belle(Dialogue):
     user_prompt: str = "Human: {input}"
     assistant_prompt: str = "\n\nBelle: {output}"
     separator: str = "\n\n"
-    
+
 
 @register_template('Bluelm')
 class Bluelm(Dialogue):
@@ -308,16 +344,16 @@ class Bluelm(Dialogue):
     user_prompt: str = "Human: {input}"
     assistant_prompt: str = "\n\nBelle: {output}"
     separator: str = ""
-    
-    
+
+
 @register_template('Breeze')
 class Breeze(Dialogue):
     system_prompt: str = "<bos>"
     user_prompt: str = "[INST] {input}"
     assistant_prompt: str = "[/INST]{output}"
     separator: str = ""
-    
-    
+
+
 @register_template('Chatglm2')
 class Chatglm2(Dialogue):
     system_prompt: str = "[gMASK]<sop>"
@@ -348,7 +384,7 @@ class Chatml_de(Dialogue):
     user_prompt: str = "<|im_start|>user\n{input}<|im_end|>\n"
     assistant_prompt: str = "<|im_start|>assistant\n{output}"
     separator: str = "\n"
-    
+
 
 @register_template('Codegeex2')
 class Codegeex2(Dialogue):
@@ -356,8 +392,8 @@ class Codegeex2(Dialogue):
     user_prompt: str = "{input}"
     assistant_prompt: str = "{output}"
     separator: str = ""
-    
-    
+
+
 @register_template('Codegeex4')
 class Codegeex2(Dialogue):
     system_prompt: str = "[gMASK]<sop><|system|>\n你是一位智能编程助手，你叫CodeGeeX。你会为用户回答关于编程、代码、计算机方面的任何问题，并提供格式规范、可以执行、准确安全的代码，并在必要时提供详细的解释。"
@@ -388,19 +424,19 @@ class Dbrx(Dialogue):
     user_prompt: str = "<|im_start|>user\n{input}<|im_end|>\n"
     assistant_prompt: str = "<|im_start|>assistant\n{output}"
     separator: str = "\n"
-    
+
 
 @register_template('Deepseek')
 class Deepseek(Dialogue):
-    system_prompt: str =  "<bos>"   
+    system_prompt: str =  "<bos>"
     user_prompt: str = "User: {input}\n"
     assistant_prompt: str = "\nAssistant:{output}"
     separator: str = ""
-    
+
 
 @register_template('Deepseekcoder')
 class Deepseekcoder(Dialogue):
-    system_prompt: str =  "<bos>You are an AI programming assistant, utilizing the Deepseek Coder model, developed by Deepseek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer\n"   
+    system_prompt: str =  "<bos>You are an AI programming assistant, utilizing the Deepseek Coder model, developed by Deepseek Company, and you only answer questions related to computer science. For politically sensitive questions, security and privacy issues, and other non-computer science questions, you will refuse to answer\n"
     user_prompt: str = "### Instruction:\n{input}\n"
     assistant_prompt: str = "### Response:{output}"
     separator: str = "\n"
@@ -436,7 +472,7 @@ class Glm4(Dialogue):
     user_prompt: str = "<|user|>\n{input}"
     assistant_prompt: str = "<|assistant|>\n{output}"
     separator: str = ""
-    
+
 
 @register_template('Intern')
 class Intern(Dialogue):
@@ -460,7 +496,7 @@ class Llama2(Dialogue):
     user_prompt: str = "<bos>[INST] {input}"
     assistant_prompt: str = "[/INST]{output}"
     separator: str = ""
-    
+
 
 @register_template('Llama2_zh')
 class Llama2_zh(Dialogue):
@@ -468,7 +504,7 @@ class Llama2_zh(Dialogue):
     user_prompt: str = "<bos>[INST] {input}"
     assistant_prompt: str = "[/INST]{output}"
     separator: str = ""
-    
+
 
 @register_template('Llama2_hf')
 class Llama2_hf(Dialogue):
@@ -480,23 +516,23 @@ class Llama2_hf(Dialogue):
 
 @register_template('Llama3')
 class Llama3(Dialogue):
-    system_prompt: str =  "<bos><|start_header_id|>system<|end_header_id|>\n\n"    
+    system_prompt: str =  "<bos><|start_header_id|>system<|end_header_id|>\n\n"
     user_prompt: str = "<|start_header_id|>user<|end_header_id|>\n\n{input}<|eot_id|>"
     assistant_prompt: str = "<|start_header_id|>assistant<|end_header_id|>\n\n{output}"
     separator: str = ""
-    
+
 
 @register_template('Llama3_hf')
 class Llama3_hf(Dialogue):
-    system_prompt: str =  "<bos><|start_header_id|>system<|end_header_id|>\n\n    You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information." 
+    system_prompt: str =  "<bos><|start_header_id|>system<|end_header_id|>\n\n    You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information."
     user_prompt: str = "<|start_header_id|>user<|end_header_id|>\n\n{input}<|eot_id|>"
     assistant_prompt: str = "<|start_header_id|>assistant<|end_header_id|>\n\n{output}"
     separator: str = ""
-    
+
 
 @register_template('Mistral')
 class Mistral(Dialogue):
-    system_prompt: str =  "<bos>"    
+    system_prompt: str =  "<bos>"
     user_prompt: str = "[INST] {input}"
     assistant_prompt: str = "[/INST]{output}"
     separator: str = ""
@@ -504,7 +540,7 @@ class Mistral(Dialogue):
 
 @register_template('Olmo')
 class Olmo(Dialogue):
-    system_prompt: str =  "<eos>"    
+    system_prompt: str =  "<eos>"
     user_prompt: str = "<|user|>\n{input}"
     assistant_prompt: str = "<|assistant|>\n{output}"
     separator: str = ""
@@ -512,7 +548,7 @@ class Olmo(Dialogue):
 
 @register_template('Openchat')
 class Openchat(Dialogue):
-    system_prompt: str =  "<bos>"   
+    system_prompt: str =  "<bos>"
     user_prompt: str = "GPT4 Correct User: {input}<eos>"
     assistant_prompt: str = "GPT4 Correct Assistant:{output}"
     separator: str = ""
@@ -520,7 +556,7 @@ class Openchat(Dialogue):
 
 @register_template('Openchat3')
 class Openchat3(Dialogue):
-    system_prompt: str =  "<bos>"   
+    system_prompt: str =  "<bos>"
     user_prompt: str = "<|start_header_id|>GPT4 Correct User<|end_header_id|>\n\n{input}<|eot_id|>"
     assistant_prompt: str = "<|start_header_id|>GPT4 Correct Assistant<|end_header_id|>\n\n"
     separator: str = ""
@@ -528,7 +564,7 @@ class Openchat3(Dialogue):
 
 @register_template('Orion')
 class Orion(Dialogue):
-    system_prompt: str =  "<bos>"   
+    system_prompt: str =  "<bos>"
     user_prompt: str = "Human: {input}\n"
     assistant_prompt: str = "\nAssistant: <eos>{output}"
     separator: str = ""
@@ -536,14 +572,14 @@ class Orion(Dialogue):
 
 @register_template('Phi')
 class Phi(Dialogue):
-    system_prompt: str =  "<bos>"   
+    system_prompt: str =  "<bos>"
     user_prompt: str = "<|user|>\n{input}<|end|>"
     assistant_prompt: str = "\n<|assistant|>\n{output}"
     separator: str = "\n"
 
 @register_template('Qwen')
 class Qwen(Dialogue):
-    system_prompt: str =  "<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n"  
+    system_prompt: str =  "<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n"
     user_prompt: str = "<|im_start|>user\n{input}<|im_end|>"
     assistant_prompt: str = "\n<|im_start|>assistant\n{output}"
     separator: str = "\n"
@@ -583,7 +619,7 @@ class Xuanyuan(Dialogue):
 
 @register_template('Xverse')
 class Xverse(Dialogue):
-    system_prompt: str =  ""    
+    system_prompt: str =  ""
     user_prompt: str = "Human: {input}\n"
     assistant_prompt: str = "\nAssistant: {output}"
     separator: str = ""
@@ -591,7 +627,7 @@ class Xverse(Dialogue):
 
 @register_template('Yayi')
 class Yayi(Dialogue):
-    system_prompt: str =  "<|System|>\nYou are a helpful, respectful and honest assistant named YaYi developed by Beijing Wenge Technology Co.,Ltd. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n\n"    
+    system_prompt: str =  "<|System|>\nYou are a helpful, respectful and honest assistant named YaYi developed by Beijing Wenge Technology Co.,Ltd. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.\n\nIf a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n\n"
     user_prompt: str = "<|Human|>\n{input}\n"
     assistant_prompt: str = "\n<|YaYi|>:{output}"
     separator: str = "\n\n"
@@ -599,11 +635,11 @@ class Yayi(Dialogue):
 
 @register_template('Yi')
 class Yi(Dialogue):
-    system_prompt: str =  "<|im_start|>system\n<|im_end|>\n"    
+    system_prompt: str =  "<|im_start|>system\n<|im_end|>\n"
     user_prompt: str = "<|im_start|>user\n<|im_end|>\n"
     assistant_prompt: str = "<|im_start|>assistant\n{output}"
     separator: str = "\n"
-    
+
 
 @register_template('Yi_vl')
 class Yi_vl(Dialogue):
@@ -615,7 +651,7 @@ class Yi_vl(Dialogue):
 
 @register_template('Yuan')
 class Yuan(Dialogue):
-    system_prompt: str =  ""    
+    system_prompt: str =  ""
     user_prompt: str = "{input}<sep>"
     assistant_prompt: str = "{output}"
     separator: str = "\n"
@@ -623,7 +659,7 @@ class Yuan(Dialogue):
 
 @register_template('Zephyr')
 class Zephyr(Dialogue):
-    system_prompt: str =  "<|system|>\nYou are Zephyr, a helpful assistant."    
+    system_prompt: str =  "<|system|>\nYou are Zephyr, a helpful assistant."
     user_prompt: str = "<|user|>\n{input}<eos>"
     assistant_prompt: str = "<|assistant|>\n{output}"
     separator: str = "\n"
@@ -631,7 +667,7 @@ class Zephyr(Dialogue):
 
 @register_template('Ziya')
 class Zephyr(Dialogue):
-    system_prompt: str =  ""    
+    system_prompt: str =  ""
     user_prompt: str = "<human>:{input}\n"
     assistant_prompt: str = "<bot>:{output}"
     separator: str = "\n"
